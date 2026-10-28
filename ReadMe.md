@@ -1,5 +1,5 @@
 markdown
-# Sensor Analytics Midterm
+# Sensor Analytics 
 
 A small analytics pipeline for factory sensor readings. Each reading has an ID,
 four features (temperature, vibration, pressure, rpm) and a binary fault label.
@@ -9,7 +9,7 @@ IDs and fault labels never enter distance calculations or PCA.
 
 ## Project structure
 sensors_analytics/markdown
-# Sensor Analytics Midterm
+# Sensor Analytics 
 
 A small analytics pipeline for factory sensor readings. Each reading has an ID,
 four features (temperature, vibration, pressure, rpm) and a binary fault label.
