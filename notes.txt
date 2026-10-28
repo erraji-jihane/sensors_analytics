@@ -11,3 +11,11 @@ mean_of_local_means — takes each partition's local mean and averages those loc
 def topk_heap(query, vectors, ids, k=K): # doe sthe same as topk_sort, but instead of sorting all teh distances, we keep a max-heap of size k, so we only keep the best k candidates seen so far (better optimization for large datasets)
 
 
+part 3 --- PCA
+y = (z − μ_PCA)ᵀ P
+ we go from 4 to 2 features 
+ 
+ note we dont remove 2  fearures we have 2 new features that are the combination of all 4 
+ 
+
+
