@@ -97,7 +97,7 @@ def local_summary(part):
 
 
 def merge_summaries(summaries):
-    #sum/total_count for each feature to get the global mean
+    #sum/total_count for each feature to get the global mean (example mean for temperature = sum of all temperature readings / total number of readings)
     """TODO (Part 1). Merge a list of (sums, count) pairs into the 4 global feature means."""
     total_count = 0
     totals = [0.0, 0.0, 0.0, 0.0]
@@ -112,7 +112,12 @@ def merge_summaries(summaries):
 def mean_of_local_means(summaries):
     """TODO (Part 1). Compute each partition's local means, then average them WITHOUT
     weighting by count. This is the incorrect method you will compare against."""
-    raise NotImplementedError("TODO: mean_of_local_means")
+    local_means = []
+    for sums, count in summaries:
+        local_means.append([sums[j] / count for j in range(4)])
+    n = len(summaries)
+    return [sum(lm[j] for lm in local_means) / n for j in range(4)]
+   
 
 
 # ----------------------------------------------------------------------------- Part 2

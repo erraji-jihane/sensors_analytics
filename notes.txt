@@ -1,4 +1,10 @@
 Part 1  ← uses raw X_train (split into 4)      
 Part 2  ← uses standardized Z_train, Z_query   
 Part 3  ← uses Z_train, Z_query (projected)    
-Part 4  ← uses standardized R1377             
+Part 4  ← uses standardized R1377     
+
+
+merge_summaries — takes the sum of each feature across all partitions and divides it by the total count (all occurrences, 1,600), giving the correct weighted global mean.
+
+mean_of_local_means — takes each partition's local mean and averages those local means over the partitions (divides by 4), ignoring partition size — the incorrect, unweighted method.
+
