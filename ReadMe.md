@@ -18,24 +18,26 @@ IDs and fault labels never enter distance calculations or PCA.
 ---
 
 ## Project structure
+
+```text
 sensors_analytics/
-├── data/ # raw Excel inputs
-│ ├── train.xlsx # 1,600 training readings (in collection order)
-│ ├── test.xlsx # 400 test readings
-│ └── queries.xlsx # Q1–Q5, no label
-├── params/ # supplied artifacts, READ-ONLY
-│ ├── feature_stats.csv # training mean and std per feature
-│ ├── pca_mean.csv # PCA centering vector (fitted on standardized train)
-│ ├── pca_projection.csv # fitted 4×2 projection matrix
-│ └── nn_weights.txt # 4→3→1 network weights + learning rate η = 0.10
+├── data/                      # raw Excel inputs
+│   ├── train.xlsx             # 1,600 training readings (in collection order)
+│   ├── test.xlsx              # 400 test readings
+│   └── queries.xlsx           # Q1–Q5, no label
+├── params/                    # supplied artifacts, READ-ONLY
+│   ├── feature_stats.csv      # training mean and std per feature
+│   ├── pca_mean.csv           # PCA centering vector
+│   ├── pca_projection.csv     # fitted 4×2 projection matrix
+│   └── nn_weights.txt         # 4→3→1 network weights + learning rate η = 0.10
 ├── src/
-│ ├── data_loader.py # loads Excel + cleans -> (ids, X, labels)
-│ ├── starter.py # ALL analytics functions + main() + results writer
-│ ├── check.py # supplied checks (do not edit)
-│ └── results.md # generated output table
+│   ├── data_loader.py         # loads Excel + cleans -> (ids, X, labels)
+│   ├── starter.py             # ALL analytics functions + main() + results writer
+│   ├── check.py               # supplied checks (do not edit)
+│   └── results.md             # generated output table
 ├── docs/
-│ └── worked_update_R1377.md # Part 4 Q3 worked update, by hand
-├── answers.md # short answers (Parts 1–5) + pasted check output
+│   └── worked_update_R1377.md # Part 4 Q3 worked update, by hand
+├── answers.md                 # short answers (Parts 1–5) + pasted check output
 └── README.md
 
 text
