@@ -203,7 +203,25 @@ def sigmoid(a):
 def forward(z, nn):
     """TODO (Part 4). a_i = sum_j W1[i][j] z_j + b1[i];  h_i = relu(a_i);
     y_hat = sigmoid(sum_i v[i] h_i + c).  Return (a, h, y_hat)."""
-    raise NotImplementedError("TODO: forward")
+    
+    a = [0.0, 0.0, 0.0]
+    h = [0.0, 0.0, 0.0]
+    
+    # 1. Compute hidden pre-activations and activations
+    for i in range(3):
+        val = nn["b1"][i]
+        for j in range(4):
+            val += nn["W1"][i][j] * z[j]
+        a[i] = val
+        h[i] = relu(val)
+        
+    # 2. Compute output
+    s = nn["c"]
+    for i in range(3):
+        s += nn["v"][i] * h[i]
+    y_hat = sigmoid(s)
+    
+    return a, h, y_hat
 
 
 def output_weight_update(z, y, nn, j):
