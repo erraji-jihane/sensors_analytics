@@ -121,30 +121,51 @@ def mean_of_local_means(summaries):
 
 
 # ----------------------------------------------------------------------------- Part 2
-def standardize(x, means, stds):
+def standardize(x, means, stds): # we do not use the means from before, we use the ones that are given to us in the function, which are the training means and stds
     """TODO (Part 2). Return the z-scores of the 4 features of x using the supplied
     training means and standard deviations."""
-    raise NotImplementedError("TODO: standardize")
+    return [(x[j] - means[j]) / stds[j] for j in range(4)]
 
 
-def squared_distance(a, b):
+def squared_distance(a, b):  #will be used in similarity search, to measure how close two numbers are
     """TODO (Part 2). Squared Euclidean distance between two equal-length vectors.
     Do not take a square root."""
-    raise NotImplementedError("TODO: squared_distance")
+    total = 0.0
+    for j in range(len(a)):
+        diff = a[j] - b[j]
+        total += diff * diff
+    return total
 
 
-def topk_sort(query, vectors, ids, k=K):
+def topk_sort(query, vectors, ids, k=K): # we need to sort the squared distances and return the best k, the closest  (id, sq_distance)
     """TODO (Part 2). Score every vector, sort, return the best k as [(id, sq_distance), ...]
     in ascending order of distance. Break ties by the smaller row index."""
-    raise NotImplementedError("TODO: topk_sort")
+    scored = []
+    for i in range(len(vectors)):
+        d = squared_distance(query, vectors[i])
+        scored.append((d, i, ids[i]))
+
+    scored.sort(key=lambda t: (t[0], t[1]))
+    return [(ids[i], d) for d, i, _ in scored[:k]]
+    
 
 
-def topk_heap(query, vectors, ids, k=K):
+def topk_heap(query, vectors, ids, k=K): # doe sthe same as topk_sort, but instead of sorting all teh distances, we keep a max-heap of size k, so we only keep the best k candidates seen so far (better optimization for large datasets)
     """TODO (Part 2). Same output as topk_sort, but keep only a size-k MAX-heap of the
     best candidates seen so far. Python's heapq is a min-heap: store (-distance, -index)
     so that heap[0] is the worst of the current best k. Use heapq.heappush and
     heapq.heapreplace. Return the k results sorted ascending, like topk_sort."""
-    raise NotImplementedError("TODO: topk_heap")
+    heap = []                                   # entries: (-distance, -index, id)
+    for i in range(len(vectors)):
+        d = squared_distance(query, vectors[i])
+        if len(heap) < k:
+            heapq.heappush(heap, (-d, -i, ids[i]))
+        elif (-d, -i) > (heap[0][0], heap[0][1]):   # better than current worst
+            heapq.heapreplace(heap, (-d, -i, ids[i]))
+
+    # heap now holds the best k, but in heap order — sort ascending for output
+    result = sorted(((-d, -i, id_) for d, i, id_ in heap), key=lambda t: (t[0], t[1]))
+    return [(id_, d) for d, i, id_ in result]
 
 
 # ----------------------------------------------------------------------------- Part 3
