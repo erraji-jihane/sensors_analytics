@@ -173,12 +173,12 @@ def project(z, pca_mean, proj):
     """TODO (Part 3). Subtract the supplied PCA mean from the standardized vector z, then
     multiply by the 4 x 2 projection matrix proj (proj[j][c] = row j, component c).
     Return a list of 2 floats."""
-    # 1. Center the vector
+    # we should first center the vector
     centered = [z[j] - pca_mean[j] for j in range(4)]
     
-    # 2. Multiply by the 4x2 matrix
+    # then multiply by the 4x2 matrix
     y = [0.0, 0.0]
-    for c in range(2):                # for each of the 2 output components
+    for c in range(2):                # for each of the 2 output componennts
         for j in range(4):            # for each of the 4 input features
             y[c] += centered[j] * proj[j][c]
             
@@ -188,7 +188,7 @@ def project(z, pca_mean, proj):
 def neighbor_preservation(original_ids, reduced_ids):
     """TODO (Part 3). neighbor preservation@k: the number of IDs that appear in BOTH
     top-k lists (an integer from 0 to k)."""
-    raise NotImplementedError("TODO: neighbor_preservation")
+    return len(set(original_ids) & set(reduced_ids))
 
 
 # ----------------------------------------------------------------------------- Part 4
