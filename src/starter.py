@@ -97,8 +97,16 @@ def local_summary(part):
 
 
 def merge_summaries(summaries):
+    #sum/total_count for each feature to get the global mean
     """TODO (Part 1). Merge a list of (sums, count) pairs into the 4 global feature means."""
-    raise NotImplementedError("TODO: merge_summaries")
+    total_count = 0
+    totals = [0.0, 0.0, 0.0, 0.0]
+    for sums, count in summaries:
+        total_count += count
+        for j in range(4):
+            totals[j] += sums[j]
+    return [totals[j] / total_count for j in range(4)]
+    
 
 
 def mean_of_local_means(summaries):
