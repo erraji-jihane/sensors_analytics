@@ -1,0 +1,4 @@
+Part 1  ← uses raw X_train (split into 4)      
+Part 2  ← uses standardized Z_train, Z_query   
+Part 3  ← uses Z_train, Z_query (projected)    
+Part 4  ← uses standardized R1377             
