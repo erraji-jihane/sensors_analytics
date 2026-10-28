@@ -157,7 +157,7 @@ def topk_heap(query, vectors, ids, k=K): # doe sthe same as topk_sort, but inste
     heapq.heapreplace. Return the k results sorted ascending, like topk_sort."""
     heap = []                                   # entries: (-distance, -index, id)
     for i in range(len(vectors)):
-        d = squared_distance(query, vectors[i])
+        d = squared_distance(query, vectors[i]) #each vector is comparing the quy to the 
         if len(heap) < k:
             heapq.heappush(heap, (-d, -i, ids[i]))
         elif (-d, -i) > (heap[0][0], heap[0][1]):   # better than current worst
@@ -174,13 +174,13 @@ def project(z, pca_mean, proj):
     multiply by the 4 x 2 projection matrix proj (proj[j][c] = row j, component c).
     Return a list of 2 floats."""
     # we should first center the vector
-    centered = [z[j] - pca_mean[j] for j in range(4)]
+    centered = [z[j] - pca_mean[j] for j in range(4)] 
     
     # then multiply by the 4x2 matrix
-    y = [0.0, 0.0]
+    y = [0.0, 0.0] # 
     for c in range(2):                # for each of the 2 output componennts
         for j in range(4):            # for each of the 4 input features
-            y[c] += centered[j] * proj[j][c]
+            y[c] += centered[j] * proj[j][c] # proj is the matrix 4x2
             
     return y
 
