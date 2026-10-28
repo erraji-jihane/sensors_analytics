@@ -203,7 +203,7 @@ def sigmoid(a):
 def forward(z, nn):
     """TODO (Part 4). a_i = sum_j W1[i][j] z_j + b1[i];  h_i = relu(a_i);
     y_hat = sigmoid(sum_i v[i] h_i + c).  Return (a, h, y_hat)."""
-    
+
     a = [0.0, 0.0, 0.0]
     h = [0.0, 0.0, 0.0]
     
@@ -228,7 +228,15 @@ def output_weight_update(z, y, nn, j):
     """TODO (Part 4). For output weight v_j (0-based j) return (gradient, new_value):
     dL/dv_j = (y_hat - y) h_j   and   v_j_new = v_j - eta * dL/dv_j.
     Do not modify nn."""
-    raise NotImplementedError("TODO: output_weight_update")
+    # 1. Get current forward pass results
+    a, h, y_hat = forward(z, nn)
+    
+    # 2. Compute gradient and new weight
+    gradient = (y_hat - y) * h[j]
+    v_j_new = nn["v"][j] - nn["eta"] * gradient
+    
+    return gradient, v_j_new
+
 
 
 def bce(y_hat, y):
