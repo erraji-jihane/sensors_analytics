@@ -1,31 +1,56 @@
 import express from "express";
-import { exec } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import cors from 'cors';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 1. Initialize the app
 const app = express();
+app.use(cors());
 
-// 2. Define the routes
 app.get('/', (req, res) => {
-    res.send('Hello World');
+    res.send('API is running. Go to /api/search to get data.');
 });
 
-app.get('/api/run-pipeline', (req, res) => {
-    const pythonScript = path.join(__dirname, '../../python/starter.py');
-    
-    exec(`python "${pythonScript}"`, (error, stdout, stderr) => {
-        if (error) {
-            return res.status(500).json({ error: error.message });
+app.get('/api/search', (req, res) => {
+    // We are returning the exact results from results.md directly
+    const mockData = [
+        {
+            query: "Q1",
+            neighbors: [
+                { id: "R1160", distance: 0.032 },
+                { id: "R0485", distance: 0.083 }
+            ]
+        },
+        {
+            query: "Q2",
+            neighbors: [
+                { id: "R1671", distance: 0.053 },
+                { id: "R1843", distance: 0.060 }
+            ]
+        },
+        {
+            query: "Q3",
+            neighbors: [
+                { id: "R1618", distance: 0.160 },
+                { id: "R1393", distance: 0.244 }
+            ]
+        },
+        {
+            query: "Q4",
+            neighbors: [
+                { id: "R1529", distance: 0.096 },
+                { id: "R1368", distance: 0.102 }
+            ]
+        },
+        {
+            query: "Q5",
+            neighbors: [
+                { id: "R1966", distance: 0.529 },
+                { id: "R1715", distance: 0.687 }
+            ]
         }
-        res.json({ results: stdout });
-    });
+    ];
+    
+    res.json(mockData);
 });
 
-// 3. Start the server
 app.listen(3001, () => {
     console.log('Server is running on port 3001');
 });
