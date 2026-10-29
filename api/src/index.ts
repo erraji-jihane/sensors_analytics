@@ -1,54 +1,42 @@
 import express from "express";
 import cors from 'cors';
+import { exec } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+app.use(express.json()); // Allows us to read JSON from React
 
-app.get('/', (req, res) => {
-    res.send('API is running. Go to /api/search to get data.');
+// Mock function to simulate the Neural Network output
+app.post('/api/predict', (req, res) => {
+    const { temp, vib, press, rpm } = req.body;
+    
+    // In a real app, you would pass these to Python here.
+    // For now, we simulate the output based on the R1377 example.
+    const prediction = 0.3130; 
+    const isFault = prediction >= 0.5;
+    
+    res.json({
+        prediction: prediction,
+        isFault: isFault,
+        message: isFault ? "⚠️ FAULT DETECTED" : "✅ MACHINE NORMAL"
+    });
 });
 
-app.get('/api/search', (req, res) => {
-    // We are returning the exact results from results.md directly
-    const mockData = [
-        {
-            query: "Q1",
-            neighbors: [
-                { id: "R1160", distance: 0.032 },
-                { id: "R0485", distance: 0.083 }
-            ]
-        },
-        {
-            query: "Q2",
-            neighbors: [
-                { id: "R1671", distance: 0.053 },
-                { id: "R1843", distance: 0.060 }
-            ]
-        },
-        {
-            query: "Q3",
-            neighbors: [
-                { id: "R1618", distance: 0.160 },
-                { id: "R1393", distance: 0.244 }
-            ]
-        },
-        {
-            query: "Q4",
-            neighbors: [
-                { id: "R1529", distance: 0.096 },
-                { id: "R1368", distance: 0.102 }
-            ]
-        },
-        {
-            query: "Q5",
-            neighbors: [
-                { id: "R1966", distance: 0.529 },
-                { id: "R1715", distance: 0.687 }
-            ]
-        }
-    ];
-    
-    res.json(mockData);
+// Mock function for Similarity Search
+app.post('/api/similarity', (req, res) => {
+    // Simulating the results
+    res.json([
+        { id: "R1160", distance: 0.032 },
+        { id: "R0485", distance: 0.083 },
+        { id: "R0325", distance: 0.097 },
+        { id: "R0789", distance: 0.102 },
+        { id: "R0150", distance: 0.112 }
+    ]);
 });
 
 app.listen(3001, () => {
