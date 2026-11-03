@@ -6,4 +6,5 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from web import make_handler  # noqa: E402
 
-handler = make_handler("predict")
+class handler(make_handler("predict")):
+    """Vercel looks for a top-level class named `handler`."""
