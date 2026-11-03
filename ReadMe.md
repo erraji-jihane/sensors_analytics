@@ -1,137 +1,129 @@
-# Sensor Analytics Pipeline
+# Sensor Analytics
 
-A small analytics pipeline for factory sensor readings. Each reading has an ID, four features (temperature, vibration, pressure, rpm) and a binary fault label.
+Fault detection and similarity search for factory sensor readings, implemented from scratch in plain Python (no NumPy or pandas), served through a TypeScript/Express API and explored in a React dashboard.
 
-**Important Rule:** IDs and fault labels never enter distance calculations or PCA — only the four raw features (`r["x"]`) do.
+Each reading has an ID, four features (**temperature, vibration, pressure, rpm**) and a binary **fault** label. The pipeline covers distributed aggregation, standardization, top-k nearest-neighbour search (sort vs. heap), PCA compression, and a small neural network with a hand-derived backpropagation step.
+
+> Only the four raw features enter distance calculations and PCA. IDs and fault labels never do.
 
 ---
 
-## Pipeline Architecture & Branching
+## Results
 
-Here is how the data flows and branches through the pipeline:
+Measured on the 400-reading test set:
+
+| Model | Test accuracy |
+|---|---|
+| Neural network (4 → 3 → 1) | **96.5%** |
+| 5-NN, original 4-D space | 95.3% |
+| 5-NN, after PCA to 2-D | 87.5% |
+| Baseline: always predict "no fault" | 89.5% |
+
+Compressing to 2-D keeps on average only 1.6 of the 5 true nearest neighbours for the query readings (32%), which is why k-NN drops below the baseline in PCA space.
+
+## Highlights
+
+- **Distributed means done right:** aggregates four unequal partitions (100 / 300 / 500 / 700 readings) by merging `(sums, count)` summaries, and shows why averaging local means is biased toward small partitions.
+- **Two top-k strategies:** a sort-based baseline and a single-pass size-k max-heap, verified to return identical results, including ties.
+- **Compression cost, measured:** projects standardized vectors from 4-D to 2-D with PCA and reports *neighbour preservation@5*.
+- **Neural network from first principles:** forward pass and output-layer gradient, checked against a finite-difference estimate.
+- **End-to-end app:** the dashboard sends a reading to the API, which runs it through the same tested Python functions. Nothing is mocked.
+- **CI:** GitHub Actions runs the 13 pipeline checks, builds the API, and tests and builds the dashboard on every push.
+
+## Architecture
 
 ```text
-[ data/train.xlsx ] ──────────────┐
-                                  │
-                                  ├──▶ (1) AGGREGATION
-                                  │    ├─ local_summary()   ─▶ [Partitions]
-                                  │    ├─ merge_summaries() ─▶ [Weighted Means]
-                                  │    └─ mean_of_locals()  ─▶ [Unweighted Means]
-                                  │
-[ data/test.xlsx ] ───────────────┤
-[ data/queries.xlsx ] ────────────┤
-                                  │
-                                  ├──▶ (2) PREPROCESSING
-                                  │    └─ standardize(x)    ─▶ [ Z-vectors ]
-                                  │
-                                  ├──▶ (3) SIMILARITY SEARCH
-                                  │    ├─ topk_sort()       ─▶ [Sorted Top-5]
-                                  │    └─ topk_heap()       ─▶ [Heap Top-5]
-                                  │
-                                  ├──▶ (4) PCA COMPRESSION
-                                  │    ├─ project(Z)        ─▶ [ 2-D Vectors ]
-                                  │    └─ neighbor_preservation() ─▶ [Overlap Score]
-                                  │
-                                  └──▶ (5) NEURAL NETWORK
-                                       ├─ forward(Z)        ─▶ [ Predictions ]
-                                       └─ output_update()   ─▶ [ Weight Gradients ]
-Project File Tree
-text
-sensors_analytics/
-├── data/                      # Raw Excel inputs
-│   ├── train.xlsx             # 1,600 training readings
-│   ├── test.xlsx              # 400 test readings
-│   └── queries.xlsx           # Q1–Q5, no label
-├── params/                    # Supplied artifacts, READ-ONLY
-│   ├── feature_stats.csv      # Mean and std per feature
-│   ├── pca_mean.csv           # PCA centering vector
-│   ├── pca_projection.csv     # 4×2 projection matrix
-│   └── nn_weights.txt         # Weights + learning rate η = 0.10
-├── src/
-│   ├── data_loader.py         # Loads Excel -> (ids, X, labels)
-│   ├── starter.py             # Analytics functions + main() + writer
-│   ├── check.py               # Supplied validation tests
-│   └── results.md             # Generated output table
-├── docs/
-│   └── worked_update_R1377.md # Hand-written NN update
-├── answers.md                 # Short answers + check output
-└── README.md
-Setup:
-
-bash
-pip install pandas openpyxl
-Run (from project root):
-
-bash
-python3 src/starter.py     # runs pipeline, writes src/results.md
-python3 src/check.py       # validates functions
-
+React dashboard  ──HTTP/JSON──▶  Express API (TypeScript)  ──stdin/stdout JSON──▶  python/service.py
+  frontend/ :3000                  api/ :3001                                          │
+                                                                                        ▼
+                                                                         python/starter.py (pipeline)
+                                                                         data/  params/
 ```
 
-## Detailed Breakdown
+| Endpoint | Method | Body | Returns |
+|---|---|---|---|
+| `/api/health` | GET | — | `{ status: "ok" }` |
+| `/api/predict` | POST | `{ temp, vib, press, rpm }` | fault probability, verdict, standardized input, hidden activations |
+| `/api/similarity` | POST | `{ temp, vib, press, rpm }` | top-5 neighbours (original and PCA space) with labels, preservation@5, 5-NN vote |
+| `/api/overview` | GET | — | test-set accuracies and the 2-D PCA map of the training set |
 
-### 1. Distributed Aggregation
+Invalid input returns HTTP 400 with `{ error }`.
 
-These functions handle the scenario where training data is split across four unequal partitions (100, 300, 500, 700 readings).
+## Project structure
 
-*   **`local_summary(part)`**: Returns `(sums, count)` for one partition. Summarizes a partition without sending raw data.
-*   **`merge_summaries(summaries)`**: Sums features across all partitions, divides by total count (1600). **Correct method.** Weights by size, so big partitions matter more.
-*   **`mean_of_local_means(summaries)`**: Averages the local means equally (divides by 4). **Incorrect method.** Ignores partition size, biasing toward small ones.
+```text
+sensors_analytics/
+├── data/
+│   ├── train.csv            # 1,600 labelled readings
+│   ├── test.csv             # 400 labelled readings
+│   └── queries.csv          # 5 unlabelled query readings (Q1–Q5)
+├── params/                  # Supplied artifacts (read-only)
+│   ├── feature_stats.csv    # Training mean and std per feature
+│   ├── pca_mean.csv         # PCA centering vector
+│   ├── pca_projection.csv   # 4×2 projection matrix
+│   └── nn_weights.txt       # Network weights and learning rate η = 0.10
+├── python/
+│   ├── starter.py           # Pipeline implementation + report generator
+│   ├── service.py           # JSON bridge used by the API
+│   └── check.py             # 13 validation checks
+├── api/                     # Express + TypeScript API
+├── frontend/                # React + TypeScript dashboard (Recharts)
+├── docs/
+│   └── worked_update_R1377.md   # Forward pass + weight update worked by hand
+└── .github/workflows/ci.yml
+```
 
-*Note: These functions use the raw `X` data, not standardized data.*
+## Quick start
 
-### 2. Preprocessing & Similarity Search
+Requires Python 3 and Node.js 18+. The Python side uses the standard library only.
 
-Used to find the 5 closest training readings for each query.
+```bash
+# 1. Pipeline
+python3 python/check.py      # 13 validation checks
+python3 python/starter.py    # full report, also written to python/results.md
 
-*   **`standardize(x, means, stds)`**: `z = (x − mean) / std`. Features have different units (RPM ~2000 vs Temp ~70). Without this, RPM dominates all distances.
-*   **`squared_distance(a, b)`**: `Σ(a − b)²`. No square root. Cheaper than Euclidean; squaring is monotonic, so the ranking is identical.
-*   **`topk_sort(query, vectors, ids, k)`**: Scores all vectors, sorts by distance, keeps the best 5. Baseline reference method. Ties broken by smallest index.
-*   **`topk_heap(query, vectors, ids, k)`**: Scans once, keeps a size-5 max-heap of best candidates. Faster for large data. Root = worst of the best 5. Replaced only if a new point is closer.
+# 2. API  (new terminal)
+cd api
+npm install
+npm run build
+npm start                    # http://localhost:3001
 
-### 3. PCA Compression
+# 3. Dashboard  (new terminal)
+cd frontend
+npm install
+npm start                    # http://localhost:3000
+```
 
-Applies the supplied 4→2 PCA transform to see how much information is lost.
+Configuration: `PORT` and `PYTHON` (path to the Python executable) for the API; `REACT_APP_API_URL` for the dashboard.
 
-*   **`project(z, pca_mean, proj)`**: `y = (z − μ_PCA)ᵀ P`. Converts 4-D standardized vectors to 2-D. Tests if we can save storage/compute while keeping similar neighbors.
-*   **`neighbor_preservation(orig_ids, pca_ids)`**: Counts how many IDs appear in both the original top-5 and PCA top-5. Measures the cost of compression. Higher is better (max 5).
+## How it works
 
-### 4. Neural Network Execution
+### 1. Distributed aggregation
+- `local_summary(part)` returns `(sums, count)` for one partition, so raw data never has to leave the partition.
+- `merge_summaries(summaries)` sums across partitions and divides by the total count (1,600). This is the **correct** global mean.
+- `mean_of_local_means(summaries)` averages the four local means equally. This is **incorrect**: it ignores partition size, and the code keeps it to show the bias.
 
-A 4→3→1 network with ReLU hidden layers and sigmoid output.
+### 2. Standardization and similarity search
+- `standardize(x, means, stds)` computes `z = (x − mean) / std` using the training statistics. Without it, RPM (≈2,000) would dominate every distance.
+- `squared_distance(a, b)` computes `Σ(a − b)²`. The square root is skipped because it is monotonic, so the ranking is unchanged.
+- `topk_sort(...)` scores every reading, sorts, and keeps the best 5 (ties go to the smaller index).
+- `topk_heap(...)` makes one pass with a size-5 max-heap whose root is the worst of the current best 5. It gives the same output with O(n log k) work instead of O(n log n).
 
-*   **`forward(z, nn)`**: `a = W1·z + b1`, `h = relu(a)`, `ŷ = sigmoid(v·h + c)`. Runs one forward pass to get the fault probability.
-*   **`output_weight_update(z, y, nn, j)`**: Computes gradient `dL/dv_j` and new weight `v_j`. Demonstrates one backpropagation step for the output layer.
+### 3. PCA compression
+- `project(z, pca_mean, proj)` computes `y = (z − μ_PCA)ᵀ P`, which maps 4-D to 2-D.
+- `neighbor_preservation(orig_ids, pca_ids)` returns the overlap between the original and the PCA top-5 (0–5).
 
----
+### 4. Neural network
+- `forward(z, nn)` computes `a = W₁z + b₁`, then `h = ReLU(a)`, then `ŷ = σ(v·h + c)`.
+- `output_weight_update(z, y, nn, j)` computes `∂L/∂vⱼ = (ŷ − y)·hⱼ` and returns `vⱼ − η·∂L/∂vⱼ`, leaving the network unchanged.
 
-## Function Details (`src/starter.py`)
+A full hand-worked example for reading **R1377** (true label 1, ŷ = 0.3130) is in [`docs/worked_update_R1377.md`](docs/worked_update_R1377.md).
 
-### 1. Distributed Aggregation
+## Next steps
 
-- **`local_summary(part)`**: Takes one partition of the training data. Returns `(sums, count)`, where `sums` is the total of each of the 4 features, and `count` is the number of readings. It uses raw data.
-- **`merge_summaries(summaries)`**: Combines the four summaries. Adds the sums together and divides by the total count (1600). **This is the correct method** because it weights partitions by their size.
-- **`mean_of_local_means(summaries)`**: Averages the four local means equally (divides by 4). **This is the incorrect method** because it ignores partition size, biasing the result toward the smaller partitions.
+- [ ] Deploy (API on Render or Railway, dashboard on Vercel) and add a live link and screenshots here.
+- [ ] Keep the Python process warm instead of starting one per request.
 
-### 2. Preprocessing & Similarity Search
+## Tech stack
 
-- **`standardize(x, means, stds)`**: Converts raw features to z-scores using `(x - mean) / std`. Required because features have different units (RPM ~2000 vs Temp ~70), and without it, RPM would dominate the distance calculations.
-- **`squared_distance(a, b)`**: Computes `Σ(a - b)²`. No square root is taken because squaring is monotonic — the ranking of closest neighbors remains identical, but it's computationally cheaper.
-- **`topk_sort(query, vectors, ids, k)`**: Scores all vectors, sorts them by distance (ties broken by smaller index), and returns the best 5 as `(id, distance)` pairs. This is the baseline reference method.
-- **`topk_heap(query, vectors, ids, k)`**: Achieves the same result but uses a size-5 max-heap. It scans the data once, keeping only the best 5 candidates seen so far. The root is the worst of the best 5; it is replaced only when a new, closer candidate is found.
-
-### 3. PCA Compression
-
-- **`project(z, pca_mean, proj)`**: Applies the supplied PCA transform. Subtracts the PCA mean from the standardized vector `z`, then multiplies by the 4×2 projection matrix. Converts a 4-D vector to 2-D.
-- **`neighbor_preservation(orig_ids, pca_ids)`**: Compares the top-5 IDs from the original space with the top-5 IDs from the PCA space. Returns the count of IDs that appear in both lists (0 to 5). Higher is better; it measures the information lost to compression.
-
-### 4. Neural Network Execution
-
-- **`forward(z, nn)`**: Executes one forward pass of the 4→3→1 network. Computes the hidden pre-activations `a = W1·z + b1`, applies ReLU `h = relu(a)`, and computes the output probability `ŷ = sigmoid(v·h + c)`. Returns `(a, h, ŷ)`.
-- **`output_weight_update(z, y, nn, j)`**: Computes one step of backpropagation for a specific output weight `v_j`. Calculates the gradient `dL/dv_j = (ŷ - y) * h_j` and returns the new weight value `v_j - η * gradient`, without modifying the original network.
-
-## Outputs
-
-*   **`src/results.md`**: Results table: Means, Top-5 neighbors, PCA preservation, Network outputs. (Generated by `starter.py`)
-*   **`answers.md`**: Short answers + pasted `check.py` output. (Written by you)
-*   **`docs/worked_update_R1377.md`**: Handwritten/typed worked example for reading R1377. (Written by you)
+Python 3 (standard library only) · TypeScript · Node.js / Express · React · Recharts · GitHub Actions
