@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    name: Python pipeline checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 python/check.py
+      - name: Service smoke test
+        run: |
+          echo '{"action":"predict","reading":{"temperature":67.7,"vibration":3.56,"pressure":6.08,"rpm":2225}}' \
+            | python3 python/service.py | grep -q '"probability": 0.313'
+
+  api:
+    name: API build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  frontend:
+    name: Dashboard tests and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # package-lock.json is out of sync with package.json (missing yaml@2.9.1),
+      # so `npm ci` refuses to run. Switch back to `npm ci` once the lockfile is
+      # regenerated with `npm install` and committed.
+      - run: npm install --no-audit --no-fund
+      - run: CI=true npm test -- --watchAll=false
+      - run: npm run build
