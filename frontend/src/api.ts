@@ -13,6 +13,8 @@ export type Prediction = {
   message: string;
   z: number[];
   hidden: number[];
+  // Features outside the range seen in training; the prediction is meaningless then
+  outOfRange: { feature: string; value: number; min: number; max: number }[];
 };
 
 export type Neighbor = {

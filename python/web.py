@@ -51,7 +51,8 @@ def make_handler(action):
                 return self._send(500, {"error": "analytics service failed"})
             if action == "predict":
                 result["prediction"] = result["probability"]
-                result["message"] = "⚠️ FAULT DETECTED" if result["isFault"] else "✅ MACHINE NORMAL"
+                result["message"] = ("OUT OF RANGE" if result["outOfRange"]
+                                     else "⚠️ FAULT DETECTED" if result["isFault"] else "✅ MACHINE NORMAL")
             self._send(200, result)
 
         def do_GET(self):

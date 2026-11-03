@@ -37,9 +37,11 @@ def load_context():
     ids = [r["id"] for r in train]
     Z = [S.standardize(r["x"], means, stds) for r in train]
     Y = [S.project(z, pca_mean, proj) for z in Z]
+    # The network only saw readings inside these ranges, so outside them its output means nothing
+    ranges = [(min(r["x"][i] for r in train), max(r["x"][i] for r in train)) for i in range(len(FEATURES))]
     return {
         "train": train, "ids": ids, "Z": Z, "Y": Y,
-        "means": means, "stds": stds, "pca_mean": pca_mean, "proj": proj, "nn": nn,
+        "means": means, "stds": stds, "pca_mean": pca_mean, "proj": proj, "nn": nn, "ranges": ranges,
         "by_id": {r["id"]: (r, z, y) for r, z, y in zip(train, Z, Y)},
     }
 
@@ -69,6 +71,10 @@ def predict(ctx, x):
         "isFault": y_hat >= 0.5,
         "z": _round(z),
         "hidden": _round(h),
+        "outOfRange": [
+            {"feature": f, "value": v, "min": lo, "max": hi}
+            for f, v, (lo, hi) in zip(FEATURES, x, ctx["ranges"]) if not lo <= v <= hi
+        ],
     }
 
 

@@ -82,7 +82,7 @@ app.post("/api/predict", async (req: Request, res: Response) => {
     res.json({
       ...result,
       prediction: result.probability, // kept for older clients
-      message: result.isFault ? "⚠️ FAULT DETECTED" : "✅ MACHINE NORMAL",
+      message: result.outOfRange.length ? "OUT OF RANGE" : result.isFault ? "⚠️ FAULT DETECTED" : "✅ MACHINE NORMAL",
     });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
