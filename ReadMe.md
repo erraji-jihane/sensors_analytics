@@ -8,6 +8,12 @@ Each reading has an ID, four features (**temperature, vibration, pressure, rpm**
 
 > Only the four raw features enter distance calculations and PCA. IDs and fault labels never do.
 
+| Prediction | Reading outside the training range |
+|---|---|
+| ![Fault prediction](docs/prediction.png) | ![Out-of-range reading flagged](docs/out-of-range.png) |
+
+![Model overview: test accuracies and the training set in PCA space](docs/overview.png)
+
 ---
 
 ## Results
