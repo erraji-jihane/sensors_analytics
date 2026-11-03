@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-export const API_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:3001';
+// Production (Vercel) serves the API from the same site, so requests use relative
+// URLs. Locally, `npm start` talks to the Express server in server/ on port 3001.
+export const API_URL =
+  process.env.REACT_APP_API_URL ?? (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
 
 export type Reading = { temp: number; vib: number; press: number; rpm: number };
 
@@ -10,6 +13,8 @@ export type Prediction = {
   message: string;
   z: number[];
   hidden: number[];
+  // Features outside the range seen in training; the prediction is meaningless then
+  outOfRange: { feature: string; value: number; min: number; max: number }[];
 };
 
 export type Neighbor = {
@@ -42,7 +47,7 @@ function errorMessage(e: unknown): string {
   if (axios.isAxiosError(e)) {
     const serverError = (e.response?.data as { error?: string } | undefined)?.error;
     if (serverError) return serverError;
-    if (!e.response) return `Can't reach the API at ${API_URL}. Is it running?`;
+    if (!e.response) return `Can't reach the API${API_URL ? ` at ${API_URL}` : ''}. Is it running?`;
   }
   return 'Something went wrong. Please try again.';
 }

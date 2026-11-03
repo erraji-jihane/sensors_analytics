@@ -1,0 +1,2 @@
+# The analytics code uses the Python standard library only.
+# This file tells Vercel the api/ functions are Python.
