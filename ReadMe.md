@@ -1,5 +1,7 @@
 # Sensor Analytics
 
+**Live demo: [sensor-analytics-lilac.vercel.app](https://sensor-analytics-lilac.vercel.app)**
+
 Fault detection and similarity search for factory sensor readings, implemented from scratch in plain Python (no NumPy or pandas), served through a TypeScript/Express API and explored in a React dashboard.
 
 Each reading has an ID, four features (**temperature, vibration, pressure, rpm**) and a binary **fault** label. The pipeline covers distributed aggregation, standardization, top-k nearest-neighbour search (sort vs. heap), PCA compression, and a small neural network with a hand-derived backpropagation step.
@@ -124,7 +126,7 @@ A full hand-worked example for reading **R1377** (true label 1, ŷ = 0.3130) is 
 
 ## Next steps
 
-- [ ] Deploy (API on Render or Railway, dashboard on Vercel) and add a live link and screenshots here.
+- [ ] Add screenshots of the dashboard here.
 - [ ] Keep the Python process warm instead of starting one per request.
 
 ## Tech stack
