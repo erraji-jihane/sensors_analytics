@@ -34,7 +34,7 @@ Compressing to 2-D keeps on average only 1.6 of the 5 true nearest neighbours fo
 
 ```text
 React dashboard  ──HTTP/JSON──▶  Express API (TypeScript)  ──stdin/stdout JSON──▶  python/service.py
-  frontend/ :3000                  api/ :3001                                          │
+  frontend/ :3000                  server/ :3001                                       │
                                                                                         ▼
                                                                          python/starter.py (pipeline)
                                                                          data/  params/
@@ -48,6 +48,8 @@ React dashboard  ──HTTP/JSON──▶  Express API (TypeScript)  ──stdin
 | `/api/overview` | GET | — | test-set accuracies and the 2-D PCA map of the training set |
 
 Invalid input returns HTTP 400 with `{ error }`.
+
+**In production (Vercel)**, the same endpoints are served by small Python functions in `api/` that call `python/service.py` directly, so the deployed site and local development run identical analytics code. The Express server in `server/` is used for local development.
 
 ## Project structure
 
@@ -66,7 +68,8 @@ sensors_analytics/
 │   ├── starter.py           # Pipeline implementation + report generator
 │   ├── service.py           # JSON bridge used by the API
 │   └── check.py             # 13 validation checks
-├── api/                     # Express + TypeScript API
+├── api/                     # Vercel Python functions (production API)
+├── server/                  # Express + TypeScript API (local development)
 ├── frontend/                # React + TypeScript dashboard (Recharts)
 ├── docs/
 │   └── worked_update_R1377.md   # Forward pass + weight update worked by hand
@@ -83,7 +86,7 @@ python3 python/check.py      # 13 validation checks
 python3 python/starter.py    # full report, also written to python/results.md
 
 # 2. API  (new terminal)
-cd api
+cd server
 npm install
 npm run build
 npm start                    # http://localhost:3001
